@@ -7,10 +7,6 @@ import pandas as pd
 from lib.snowflake_utils import get_sf_connection
 from lib.ui_chess import render_lichess_board
 
-# -----------------------
-# Stile globale (spaziatura + eventuale background)
-# -----------------------
-
 st.markdown(
     """
     <style>
@@ -49,7 +45,6 @@ st.markdown(
 st.title("😄 Chess Analyst")
 
 
-# 👉 Adatta questo path al tuo stage reale e al nome del file YAML
 SEMANTIC_MODEL_FILE = "@CHESS_DB.ANALYTICS.SEMANTIC_MODELS/scacchi_semantica.yaml"
 
 
@@ -112,7 +107,6 @@ def display_content(content: list[dict]):
     """
     conn = get_sf_connection()
 
-    # per dare chiavi diverse agli eventuali dataframe multipli
     block_index = 0
 
     for item in content:
@@ -147,11 +141,9 @@ def display_content(content: list[dict]):
                 if df.empty:
                     st.info("La query non ha restituito risultati.")
                 else:
-                    # cerchiamo una possibile colonna con l'id partita
                     candidate_cols = [c for c in df.columns if c.lower() in ("id", "game_id", "partita_id")]
                     game_col = candidate_cols[0] if candidate_cols else None
 
-                    # se trovo una colonna partita, rendo la tabella selezionabile
                     if game_col:
                         df_show = df.copy()
                         event = st.dataframe(
@@ -163,7 +155,6 @@ def display_content(content: list[dict]):
                             key=f"analyst_result_{block_index}",
                         )
 
-                        # se l'utente seleziona una riga, salvo il game_id in session_state
                         try:
                             selected_rows = event.selection.rows
                         except AttributeError:
@@ -175,7 +166,6 @@ def display_content(content: list[dict]):
                             st.session_state.analyst_selected_game_id = str(game_id)
                             st.success(f"Partita selezionata: {game_id}")
                     else:
-                        # nessuna colonna partita: tabella normale
                         st.dataframe(df, use_container_width=True)
 
 
