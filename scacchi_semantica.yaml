@@ -1,0 +1,271 @@
+
+# Questo YAML definisce una semantic view chiamata CHESS_GAMES_SEMANTIC appoggiata sulla vista V_GAMES.
+
+
+name: chess_games_spellbind
+description: >
+  Modello semantico per analizzare le partite Lichess dell'utente "spellbind",
+  basato sulla vista CHESS_DB.ANALYTICS.V_PARTITE_ANALISI.
+
+tables:
+  - name: games
+    description: Ogni riga rappresenta una partita giocata da spellbind su Lichess.
+
+    base_table:
+      database: CHESS_DB
+      schema: ANALYTICS
+      table: V_PARTITE_ANALISI
+
+    primary_key:
+      columns:
+        - id
+
+    dimensions:
+      - name: my_color
+        description: Colore giocato da spellbind nella partita (white/black).
+        expr: my_color
+        data_type: TEXT
+        unique: false
+        synonyms:
+          - "colore"
+          - "pezzi"
+          - "side"
+
+      - name: my_result
+        description: Esito della partita dal punto di vista di spellbind (win/draw/loss).
+        expr: my_result
+        data_type: TEXT
+        unique: false
+        synonyms:
+          - "risultato"
+          - "esito"
+          - "outcome"
+
+      - name: rated
+        description: Indica se la partita è classificata (rated).
+        expr: rated
+        data_type: BOOLEAN
+        unique: false
+
+      - name: speed
+        description: Categoria di tempo (bullet, blitz, rapid, classical, ecc.).
+        expr: speed
+        data_type: TEXT
+        unique: false
+        synonyms:
+          - "time control"
+          - "tempo"
+          - "speed"
+
+      - name: perf
+        description: Tipo di performance Lichess (blitz, rapid, bullet, ecc.).
+        expr: perf
+        data_type: TEXT
+        unique: false
+
+      - name: variant
+        description: Variante di scacchi (standard, chess960, ecc.).
+        expr: variant
+        data_type: TEXT
+        unique: false
+
+      - name: status
+        description: Stato finale / modalità di terminazione della partita.
+        expr: status
+        data_type: TEXT
+        unique: false
+
+      - name: opening_name
+        description: Nome dell'apertura.
+        expr: opening_name
+        data_type: TEXT
+        unique: false
+        synonyms:
+          - "apertura"
+          - "opening"
+
+      - name: opening_eco
+        description: Codice ECO dell'apertura.
+        expr: opening_eco
+        data_type: TEXT
+        unique: false
+        synonyms:
+          - "eco"
+          - "eco code"
+
+      - name: opponent_name
+        description: Username dell'avversario.
+        expr: opponent_name
+        data_type: TEXT
+        unique: false
+        synonyms:
+          - "avversario"
+          - "opponent"
+
+      - name: opponent_rating_bucket
+        description: Fascia di rating dell'avversario.
+        expr: opponent_rating_bucket
+        data_type: TEXT
+        unique: false
+        synonyms:
+          - "fascia rating avversario"
+          - "rating bucket"
+
+    time_dimensions:
+      - name: game_date
+        description: Data della partita.
+        expr: game_date
+        data_type: DATE
+        unique: false
+        synonyms:
+          - "data"
+          - "giorno"
+          - "game date"
+
+    facts:
+      - name: game_duration_seconds
+        description: Durata della partita in secondi.
+        expr: game_duration_seconds
+        data_type: NUMBER
+
+      - name: ply_count
+        description: Numero di semimosse (plies).
+        expr: ply_count
+        data_type: NUMBER
+
+      - name: my_rating
+        description: Rating di spellbind all'inizio della partita.
+        expr: my_rating
+        data_type: NUMBER
+
+      - name: opponent_rating
+        description: Rating dell'avversario all'inizio della partita.
+        expr: opponent_rating
+        data_type: NUMBER
+
+      - name: rating_diff
+        description: Differenza di rating (mio rating - rating avversario).
+        expr: rating_diff
+        data_type: NUMBER
+
+      - name: is_win
+        description: Flag 1/0 che indica se spellbind ha vinto.
+        expr: is_win
+        data_type: NUMBER
+
+      - name: is_draw
+        description: Flag 1/0 che indica se la partita è patta.
+        expr: is_draw
+        data_type: NUMBER
+
+    metrics:
+      - name: total_games
+        description: Numero totale di partite.
+        expr: COUNT(*)
+        synonyms:
+          - "numero partite"
+          - "totale partite"
+
+      - name: total_wins
+        description: Numero totale di partite vinte.
+        expr: SUM(is_win)
+        synonyms:
+          - "vittorie"
+          - "wins"
+
+      - name: total_draws
+        description: Numero totale di patte.
+        expr: SUM(is_draw)
+        synonyms:
+          - "patte"
+          - "draws"
+
+      - name: total_losses
+        description: Numero totale di sconfitte.
+        expr: COUNT(*) - SUM(is_win) - SUM(is_draw)
+        synonyms:
+          - "sconfitte"
+          - "losses"
+
+      - name: win_rate
+        description: Percentuale di partite vinte.
+        expr: SUM(is_win) / NULLIF(COUNT(*), 0)
+        synonyms:
+          - "winrate"
+          - "percentuale vittorie"
+
+      - name: draw_rate
+        description: Percentuale di patte.
+        expr: SUM(is_draw) / NULLIF(COUNT(*), 0)
+        synonyms:
+          - "draw rate"
+          - "percentuale patte"
+
+      - name: loss_rate
+        description: Percentuale di sconfitte.
+        expr: (COUNT(*) - SUM(is_win) - SUM(is_draw)) / NULLIF(COUNT(*), 0)
+        synonyms:
+          - "loss rate"
+          - "percentuale sconfitte"
+
+      - name: avg_game_duration_seconds
+        description: Durata media delle partite in secondi.
+        expr: AVG(game_duration_seconds)
+        synonyms:
+          - "durata media partita"
+
+      - name: avg_moves
+        description: Numero medio di mosse complete per partita.
+        expr: AVG(ply_count) / 2.0
+        synonyms:
+          - "mosse medie"
+          - "average moves"
+
+      - name: avg_my_rating
+        description: Rating medio di spellbind nelle partite considerate.
+        expr: AVG(my_rating)
+        synonyms:
+          - "elo medio mio"
+
+      - name: avg_opponent_rating
+        description: Rating medio degli avversari.
+        expr: AVG(opponent_rating)
+        synonyms:
+          - "elo medio avversari"
+
+    filters:
+      - name: blitz_games
+        description: Solo partite blitz.
+        expr: "speed = 'blitz'"
+        synonyms:
+          - "solo blitz"
+          - "blitz only"
+
+      - name: rapid_games
+        description: Solo partite rapid.
+        expr: "speed = 'rapid'"
+        synonyms:
+          - "solo rapid"
+          - "rapid only"
+
+      - name: white_games
+        description: Partite giocate col Bianco da spellbind.
+        expr: "my_color = 'white'"
+        synonyms:
+          - "col bianco"
+          - "as white"
+
+      - name: black_games
+        description: Partite giocate col Nero da spellbind.
+        expr: "my_color = 'black'"
+        synonyms:
+          - "col nero"
+          - "as black"
+
+custom_instructions: >
+  Quando l'utente parla di "me", "io", "le mie partite" o "le mie vittorie",
+  interpreta sempre dal punto di vista del giocatore "spellbind", usando le
+  colonne my_color, my_result, my_rating e opponent_rating. Per domande del
+  tipo "con quali aperture vinco di più", usa preferibilmente il win_rate
+  raggruppato per opening_name e, se l'utente cita "blitz" o "rapid",
+  applica i filtri blitz_games o rapid_games.
