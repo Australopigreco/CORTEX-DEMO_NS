@@ -42,7 +42,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("😄 Chess Analyst")
+st.title("Chess Analyst")
 
 
 SEMANTIC_MODEL_FILE = "@CHESS_DB.ANALYTICS.SEMANTIC_MODELS/scacchi_semantica.yaml"
