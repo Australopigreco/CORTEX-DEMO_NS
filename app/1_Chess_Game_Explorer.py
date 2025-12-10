@@ -15,7 +15,6 @@ st.set_page_config(
 st.title("♟️ Chess Game Explorer")
 
 
-
 st.sidebar.header("Filtri")
 
 speed_filter = st.sidebar.selectbox(
@@ -77,7 +76,7 @@ if "selected_game_id" not in st.session_state and not df_games.empty:
 
 board_container = st.container()
 
-st.subheader("Partite")
+st.subheader("Storico dell partite")
 
 
 df_display = df_games.rename(

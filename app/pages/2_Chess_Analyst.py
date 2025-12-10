@@ -7,6 +7,12 @@ import pandas as pd
 from lib.snowflake_utils import get_sf_connection
 from lib.ui_chess import render_lichess_board
 
+st.set_page_config(
+    page_title="Chess Game Explorer",   # 👈 this is the browser tab title
+    page_icon="♟️",                     # optional: favicon
+    layout="wide",
+)
+
 st.markdown(
     """
     <style>
@@ -42,7 +48,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("Chess Analyst")
+st.title("🔍 Chess Analyst")
 
 
 SEMANTIC_MODEL_FILE = "@CHESS_DB.ANALYTICS.SEMANTIC_MODELS/scacchi_semantica.yaml"
@@ -95,6 +101,15 @@ def call_cortex_analyst(question: str) -> dict:
     resp_json["request_id"] = request_id
     return resp_json
 
+def translate_interpretation_text(text: str) -> str:
+    prefix = "This is our interpretation of your question:"
+    if text.startswith(prefix):
+        # Prendiamo solo la parte dopo il prefisso
+        rest = text[len(prefix):].lstrip()
+        # Mostriamo un titolo in italiano + il resto
+        return f"**Questa è la nostra interpretazione della tua domanda:**\n\n{rest}"
+    return text
+
 
 def display_content(content: list[dict]):
     """
@@ -114,7 +129,9 @@ def display_content(content: list[dict]):
         block_index += 1
 
         if item_type == "text":
-            st.markdown(item.get("text", ""))
+            raw_text = item.get("text", "")
+            text = translate_interpretation_text(raw_text)
+            st.markdown(text)
 
         elif item_type == "suggestions":
             suggestions = item.get("suggestions", [])
