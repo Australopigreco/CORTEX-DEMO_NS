@@ -8,8 +8,8 @@ from lib.snowflake_utils import get_sf_connection
 from lib.ui_chess import render_lichess_board
 
 st.set_page_config(
-    page_title="Chess Game Explorer",   # 👈 this is the browser tab title
-    page_icon="♟️",                     # optional: favicon
+    page_title="Chess Game Explorer", 
+    page_icon="♟️",                    
     layout="wide",
 )
 
