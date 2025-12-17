@@ -13,12 +13,12 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("📚 Chess Openings Chat (Najdorf & QGD)")
+st.title("📚 Chess Openings Chat (Siciliana Najdorf)")
 
 st.write(
-    "Fai domande sulle aperture (Siciliana Najdorf). "
-    "Useremo Cortex Search sui PDF caricati in Snowflake per trovare i passaggi rilevanti, "
-    "e un modello LLM di Snowflake per riassumerli in italiano."
+    "Fai domande sulla Siciliana Najdorf. "
+    "L’app userà Cortex Search per cercare nei PDF caricati in Snowflake i passaggi più rilevanti "
+    "e un modello LLM di Snowflake per riassumerli e spiegarteli in italiano."
 )
 
 # ---- Config semplice nella sidebar ----
@@ -121,8 +121,7 @@ def build_prompt(question: str, chunks: list[dict]) -> str:
 
     prompt = f"""
 [INST]
-Sei un assistente di scacchi specializzato in aperture, soprattutto Siciliana Najdorf
-e Gambetto di Donna rifiutato. Ti viene fornito un contesto estratto da libri PDF
+Sei un assistente di scacchi specializzato in aperture, soprattutto Siciliana Najdorf. Ti viene fornito un contesto estratto da libri PDF
 e appunti caricati in Snowflake.
 
 Usa **solo** le informazioni nel contesto per rispondere alla domanda dell'utente.
@@ -189,17 +188,12 @@ if user_q:
                     st.sidebar.text_area("Contesto usato per la risposta", context_str, height=300)
 
                 # 3) Chiama SNOWFLAKE.CORTEX.COMPLETE
+                
                 raw_answer = call_cortex_complete(model_name, prompt)
 
-                # 4) Costruisci tabella dei riferimenti
-                markdown_table = "###### Riferimenti\n\n| PDF | URL |\n|-----|-----|\n"
-                for r in results:
-                    markdown_table += f"| {r['relative_path']} | [Link]({r['file_url']}) |\n"
-
-                full_answer = raw_answer + "\n\n" + markdown_table
-
-                placeholder.markdown(full_answer)
+                # Mostra solo la risposta del modello, senza tabella di riferimenti
+                placeholder.markdown(raw_answer)
 
                 st.session_state.openings_chat_messages.append(
-                    {"role": "assistant", "content": full_answer}
+                    {"role": "assistant", "content": raw_answer}
                 )
