@@ -18,8 +18,10 @@ st.title("📚 Chess Openings Chat (Siciliana Najdorf)")
 st.write(
     "Fai domande sulla Siciliana Najdorf. "
     "L’app userà Cortex Search per cercare nei PDF caricati in Snowflake i passaggi più rilevanti "
-    "e un modello LLM di Snowflake per riassumerli e spiegarteli in italiano."
+    "e un modello LLM di Snowflake per riassumerli in italiano. "
+    "Alla fine della risposta vedrai anche quali PDF sono stati usati come fonte."
 )
+
 
 # ---- Config semplice nella sidebar ----
 
@@ -189,11 +191,22 @@ if user_q:
 
                 # 3) Chiama SNOWFLAKE.CORTEX.COMPLETE
                 
+                                # 3) Chiama SNOWFLAKE.CORTEX.COMPLETE
                 raw_answer = call_cortex_complete(model_name, prompt)
 
-                # Mostra solo la risposta del modello, senza tabella di riferimenti
-                placeholder.markdown(raw_answer)
+                # 4) Costruisci elenco dei PDF usati come riferimento (senza link)
+                unique_files = sorted({r["relative_path"] for r in results})
+
+                references_md = "###### Riferimenti (PDF utilizzati)\n\n"
+                for fname in unique_files:
+                    references_md += f"- {fname}\n"
+
+                full_answer = raw_answer + "\n\n" + references_md
+
+                # Mostra risposta + riferimenti
+                placeholder.markdown(full_answer)
 
                 st.session_state.openings_chat_messages.append(
-                    {"role": "assistant", "content": raw_answer}
+                    {"role": "assistant", "content": full_answer}
                 )
+
