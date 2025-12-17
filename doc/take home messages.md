@@ -11,7 +11,6 @@ cortex analyst:
 uses different llms? look in the doc 
 to understand if the answer can be provided in natural language?
 
-
 **SIPARIETTI - COMEDY**
 we should joke about:
 PREDICTION IS BAD 
