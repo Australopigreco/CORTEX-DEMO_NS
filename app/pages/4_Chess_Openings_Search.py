@@ -2,8 +2,6 @@
 
 import streamlit as st
 import pandas as pd
-
-
 import requests
 from lib.snowflake_utils import get_sf_connection
 
@@ -22,7 +20,6 @@ st.write(
     "Alla fine della risposta vedrai anche quali PDF sono stati usati come fonte."
 )
 
-
 # ---- Config semplice nella sidebar ----
 
 st.sidebar.header("Impostazioni")
@@ -38,6 +35,7 @@ num_chunks = st.sidebar.slider(
     min_value=1,
     max_value=10,
     value=5,
+    key="num_chunks",  # così lo ritroviamo in session_state
 )
 
 debug = st.sidebar.toggle("Mostra contesto (debug)", value=False)
@@ -46,6 +44,9 @@ debug = st.sidebar.toggle("Mostra contesto (debug)", value=False)
 
 if "openings_chat_messages" not in st.session_state:
     st.session_state.openings_chat_messages = []
+
+if "openings_last_context" not in st.session_state:
+    st.session_state.openings_last_context = ""
 
 
 def query_cortex_search(query: str, limit: int | None = None) -> list[dict]:
@@ -57,7 +58,6 @@ def query_cortex_search(query: str, limit: int | None = None) -> list[dict]:
     from streamlit import session_state as ss  # per sicurezza
 
     if limit is None:
-        # prova a prendere il valore che usi nello slider; se non c’è, default 5
         limit = ss.get("num_chunks", 5)
 
     conn = get_sf_connection()
@@ -92,14 +92,12 @@ def query_cortex_search(query: str, limit: int | None = None) -> list[dict]:
     return resp_json.get("results", [])
 
 
-
 def call_cortex_complete(model: str, prompt: str) -> str:
     """
     Chiama SNOWFLAKE.CORTEX.COMPLETE via SQL usando la stessa connessione
     che usi per tutto il resto.
     """
     conn = get_sf_connection()
-    # IMPORTANTE: usa parametri per evitare injection
     df = pd.read_sql(
         "SELECT SNOWFLAKE.CORTEX.COMPLETE(%s, %s) AS RESULT",
         conn,
@@ -108,7 +106,7 @@ def call_cortex_complete(model: str, prompt: str) -> str:
     return df["RESULT"].iloc[0]
 
 
-def build_prompt(question: str, chunks: list[dict]) -> str:
+def build_prompt(question: str, chunks: list[dict]) -> tuple[str, str]:
     """
     Costruisce il prompt per il modello LLM:
     - include contesto estratto dai PDF (chunks)
@@ -185,13 +183,10 @@ if user_q:
                 # 2) Costruisci il prompt per l'LLM
                 prompt, context_str = build_prompt(user_q, results)
 
-                # Debug: mostra il contesto
-                if debug:
-                    st.sidebar.text_area("Contesto usato per la risposta", context_str, height=300)
+                # salva l'ultimo contesto usato nello stato
+                st.session_state.openings_last_context = context_str
 
                 # 3) Chiama SNOWFLAKE.CORTEX.COMPLETE
-                
-                                # 3) Chiama SNOWFLAKE.CORTEX.COMPLETE
                 raw_answer = call_cortex_complete(model_name, prompt)
 
                 # 4) Costruisci elenco dei PDF usati come riferimento (senza link)
@@ -210,3 +205,10 @@ if user_q:
                     {"role": "assistant", "content": full_answer}
                 )
 
+# ---- Debug: mostra sempre l'ultimo contesto se richiesto ----
+if debug and st.session_state.openings_last_context:
+    st.sidebar.text_area(
+        "Contesto usato per l'ultima risposta",
+        st.session_state.openings_last_context,
+        height=300,
+    )
