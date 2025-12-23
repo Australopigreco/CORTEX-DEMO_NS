@@ -187,18 +187,24 @@ if user_q:
                 st.session_state.openings_last_context = context_str
 
                 # 3) Chiama SNOWFLAKE.CORTEX.COMPLETE
-                raw_answer = call_cortex_complete(model_name, prompt)
+                raw_answer = call_cortex_complete(model_name, prompt).strip()
 
-                # 4) Costruisci elenco dei PDF usati come riferimento (senza link)
-                unique_files = sorted({r["relative_path"] for r in results})
+                # Se il modello dice esplicitamente che non sa rispondere,
+                # NON aggiungiamo i riferimenti (sarebbe fuorviante).
+                dont_know_msg = "Non so rispondere a questa domanda con i dati che ho."
+                if raw_answer.startswith(dont_know_msg):
+                    full_answer = raw_answer
+                else:
+                    # 4) Costruisci elenco dei PDF usati come riferimento (senza link)
+                    unique_files = sorted({r["relative_path"] for r in results})
 
-                references_md = "###### Riferimenti (PDF utilizzati)\n\n"
-                for fname in unique_files:
-                    references_md += f"- {fname}\n"
+                    references_md = "###### Riferimenti (PDF utilizzati)\n\n"
+                    for fname in unique_files:
+                        references_md += f"- {fname}\n"
 
-                full_answer = raw_answer + "\n\n" + references_md
+                    full_answer = raw_answer + "\n\n" + references_md
 
-                # Mostra risposta + riferimenti
+                # Mostra risposta (con o senza riferimenti a seconda del caso)
                 placeholder.markdown(full_answer)
 
                 st.session_state.openings_chat_messages.append(
