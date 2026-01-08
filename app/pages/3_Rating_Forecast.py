@@ -13,7 +13,7 @@ st.sidebar.header("Impostazioni previsione")
 
 # --- Modo di selezione dei giorni futuri ---
 selection_mode = st.sidebar.radio(
-    "Come vuoi scegliere i giorni futuri?",
+    "Previsioni per i giorni futuri: ",
     ["Slider", "Input numerico"],
     index=0,
 )
@@ -22,16 +22,16 @@ if selection_mode == "Slider":
     periods = st.sidebar.slider(
         "Giorni futuri da prevedere",
         min_value=1,
-        max_value=180,
-        value=30,
+        max_value=250,
+        value=180,
         step=1,
     )
 else:
     periods = st.sidebar.number_input(
         "Giorni futuri da prevedere",
         min_value=1,
-        max_value=180,
-        value=30,
+        max_value=250,
+        value=180,
         step=1,
     )
 
@@ -41,6 +41,8 @@ st.write(
     "Il grafico mostra il tuo rating storico su Lichess (utente `spellbind`) "
     "e la previsione calcolata con `SNOWFLAKE.ML.FORECAST`."
 )
+
+st.markdown("<br>", unsafe_allow_html=True) 
 
 conn = get_sf_connection()
 
@@ -58,6 +60,50 @@ with st.spinner("Carico dati storici..."):
 if df_hist.empty:
     st.warning("Non ci sono dati storici disponibili per il rating.")
     st.stop()
+
+# ---------- Quanto storico mostrare ----------
+
+total_points = len(df_hist)
+
+# di default: ultimi 120 giorni, oppure tutti se ne hai meno di 120
+default_hist_points = min(total_points, 120)
+
+
+# piccolo spazio visivo tra parte forecast e parte storico
+st.sidebar.markdown("")
+st.sidebar.markdown("")
+
+hist_selection_mode = st.sidebar.radio(
+    "Come vuoi scegliere i giorni storici da mostrare?",
+    ["Slider", "Input numerico"],
+    index=0,
+)
+
+if hist_selection_mode == "Slider":
+    hist_points = st.sidebar.slider(
+        "Giorni storici da mostrare prima del forecast",
+        min_value=1,
+        max_value=int(total_points),
+        value=int(default_hist_points),
+        step=1,
+    )
+else:
+    hist_points = st.sidebar.number_input(
+        "Giorni storici da mostrare prima del forecast",
+        min_value=1,
+        max_value=int(total_points),
+        value=int(default_hist_points),
+        step=1,
+    )
+
+hist_points = int(hist_points)
+
+st.sidebar.markdown(
+    f"Mostriamo gli **ultimi {hist_points}** giorni di storico."
+)
+
+# tieni solo gli ultimi `hist_points` record
+df_hist = df_hist.tail(hist_points)
 
 # ---------------- Forecast ----------------
 with st.spinner("Calcolo la previsione dal modello Snowflake..."):
@@ -114,24 +160,42 @@ if pd.notna(last_hist_ts) and pd.notna(first_fore_ts):
 # uniamo storia + forecast
 df_all = pd.concat([df_hist_plot, df_fore_plot], ignore_index=True)
 
+# --- Calcola automaticamente il range dell'asse Y con un po' di margine ---
+min_val = df_all["VALUE"].min()
+max_val = df_all["VALUE"].max()
+
+padding = 100
+y_min = max(min_val - padding, 0)
+y_max = max_val + padding
+
+y_scale = alt.Scale(
+    domain=[float(y_min), float(y_max)],
+    nice=False,
+    zero=False,   # <-- non forzare lo zero
+)
+
 # ---------------- Grafico Altair ----------------
 
-base = alt.Chart(df_all).encode(
-    x=alt.X("TS:T", title="Data"),
-    tooltip=["TS:T", "VALUE:Q", "SERIES:N", "LOWER_BOUND:Q", "UPPER_BOUND:Q"],
+# linea (storico + forecast)
+line = (
+    alt.Chart(df_all)
+    .mark_line()
+    .encode(
+        x=alt.X("TS:T", title="Data"),
+        y=alt.Y("VALUE:Q", title="Rating", scale=y_scale),
+        color=alt.Color("SERIES:N", title="Serie"),
+        tooltip=["TS:T", "VALUE:Q", "SERIES:N", "LOWER_BOUND:Q", "UPPER_BOUND:Q"],
+    )
 )
 
-line = base.mark_line().encode(
-    y=alt.Y("VALUE:Q", title="Rating"),
-    color=alt.Color("SERIES:N", title="Serie"),
-)
-
+# banda di confidenza solo sul forecast
 band = (
-    base
+    alt.Chart(df_all)
     .transform_filter(alt.datum.SERIES == "Forecast")
     .mark_area(opacity=0.2)
     .encode(
-        y="LOWER_BOUND:Q",
+        x="TS:T",
+        y=alt.Y("LOWER_BOUND:Q", scale=y_scale),
         y2="UPPER_BOUND:Q",
     )
 )
